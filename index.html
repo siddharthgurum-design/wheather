@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather Frontend with WeatherAPI</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #2980b9, #6dd5fa);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 40px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    .weather-box {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    }
+    input[type="text"] {
+      width: 65%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      margin-right: 5px;
+    }
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 6px;
+      background: #34495e;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2c3e50;
+    }
+    .weather-details {
+      margin-top: 20px;
+    }
+    .weather-details p {
+      margin: 8px 0;
+    }
+    .weather-details img {
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <h1>Weather App</h1>
+  <div class="weather-box">
+    <div>
+      <input type="text" id="cityInput" placeholder="Enter city name" />
+      <button id="searchBtn">Search</button>
+    </div>
+    <div class="weather-details" id="weatherDetails">
+      <!-- Weather info will appear here -->
+    </div>
+  </div>
+
+  <script>
+    const apiKey = "20072aff5a16432da44141821252909";  // <-- your API key
+
+    function displayWeather(data) {
+      const container = document.getElementById("weatherDetails");
+      if (!data || data.error) {
+        container.innerHTML = `<p>⚠️ ${data && data.error ? data.error.message : "Unable to fetch data"}</p>`;
+        return;
+      }
+
+      const loc = data.location;
+      const cur = data.current;
+      const aq = cur.air_quality;
+
+      container.innerHTML = `
+        <h2>${loc.name}, ${loc.country}</h2>
+        <p><img src="https:${cur.condition.icon}" alt="icon"> ${cur.condition.text}</p>
+        <p>🌡️ Temp: ${cur.temp_c} °C / ${cur.temp_f} °F</p>
+        <p>Humidity: ${cur.humidity}%</p>
+        <p>Wind: ${cur.wind_kph} kph (${cur.wind_mph} mph)</p>
+        <p>Feels like: ${cur.feelslike_c} °C</p>
+        <p>Local Time: ${loc.localtime}</p>
+        <p>AQI: ${
+          aq ? `PM2.5: ${aq.pm2_5.toFixed(2)}, PM10: ${aq.pm10.toFixed(2)}` : "N/A"
+        }</p>
+      `;
+    }
+
+    async function fetchWeather(query) {
+      // query can be city name or "lat,lon"
+      const url = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${encodeURIComponent(query)}&aqi=yes`;
+      try {
+        const resp = await fetch(url);
+        const data = await resp.json();
+        displayWeather(data);
+      } catch (err) {
+        console.error("Fetch error:", err);
+        displayWeather({ error: { message: "Network error" } });
+      }
+    }
+
+    document.getElementById("searchBtn").addEventListener("click", () => {
+      const city = document.getElementById("cityInput").value.trim();
+      if (city) {
+        fetchWeather(city);
+      }
+    });
+
+    window.addEventListener("load", () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            fetchWeather(`${latitude},${longitude}`);
+          },
+          (err) => {
+            console.warn("Geolocation error:", err);
+            // fallback city
+            fetchWeather("London");
+          }
+        );
+      } else {
+        fetchWeather("London");
+      }
+    });
+  </script>
+</body>
+</html>
